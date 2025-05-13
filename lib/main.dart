@@ -26,7 +26,7 @@ class _MyAppState extends State<MyApp> {
                 color: Colors.grey,
                 width: double.infinity,
                 child: ModelViewer(
-                  src: "https://modelviewer.dev/shared-assets/models/Astronaut.glb", // Changed to remote URL
+                  src: "assets/Human_Body_3D.glb",
                   autoRotate: true,
 
                   // scale: 10,
