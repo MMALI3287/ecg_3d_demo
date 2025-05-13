@@ -1,58 +1,39 @@
 import 'package:flutter/material.dart';
-// import 'package:flutter_3d_controller/flutter_3d_controller.dart';
-import 'package:model_viewer_plus/model_viewer_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'screens/welcome_screen.dart';
 
 void main() {
+  // Filter out annoying OpenGL logs
+  if (kDebugMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {
+      if (message != null && 
+          !(message.contains('EGL_emulation') || 
+            message.contains('libEGL') ||
+            message.contains('OpenGL ES'))) {
+        debugPrintSynchronously(message, wrapWidth: wrapWidth);
+      }
+    };
+  }
+  
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'ECG 3D Demo',
       debugShowCheckedModeBanner: false,
-      home: SafeArea(
-        child: Scaffold(
-          body: Stack(
-            children: [
-              Container(
-                color: Colors.grey,
-                width: double.infinity,
-                child: ModelViewer(
-                  src: "assets/Human_Body_3D.glb",
-                  autoRotate: true,
-
-                  // scale: 10,
-                  //cameraY: 3,
-                ),
-              ),
-              Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: () async {
-                      //print("Animation => $a");
-                    },
-                    child: Text("Get available animation"),
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      //print("Textures => $a");
-                    },
-                    child: Text("Get available textures"),
-                  ),
-                ],
-              ),
-            ],
-          ),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6A11CB)),
+        useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          centerTitle: true,
         ),
       ),
+      home: const WelcomeScreen(),
     );
   }
 }
