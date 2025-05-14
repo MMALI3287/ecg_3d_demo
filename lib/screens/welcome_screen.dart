@@ -30,21 +30,18 @@ class WelcomeScreen extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                
+
                 const SizedBox(height: 12),
-                
+
                 // Subtitle
                 const Text(
                   "Explore the human body model with ECG electrodes",
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
-                
+
                 const SizedBox(height: 60),
-                
+
                 // 3D Model Button
                 _buildButton(
                   context,
@@ -57,9 +54,9 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // Layers Button
                 _buildButton(
                   context,
@@ -79,9 +76,13 @@ class WelcomeScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildButton(
-      BuildContext context, String text, IconData icon, VoidCallback onTap) {
+    BuildContext context,
+    String text,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
     return Container(
       width: 250,
       height: 60,

@@ -30,7 +30,7 @@ class _ModelViewerScreenState extends State<ModelViewerScreen> {
               cameraControls: true,
               onWebViewCreated: (controller) {
                 webViewController = controller;
-                
+
                 // Wait for the model to load
                 Future.delayed(Duration(seconds: 3), () {
                   setState(() {
@@ -40,7 +40,7 @@ class _ModelViewerScreenState extends State<ModelViewerScreen> {
               },
             ),
           ),
-          
+
           // Loading indicator
           if (!isModelLoaded)
             Container(
@@ -59,7 +59,7 @@ class _ModelViewerScreenState extends State<ModelViewerScreen> {
                 ),
               ),
             ),
-            
+
           // Back button
           Positioned(
             top: 40,
@@ -74,7 +74,7 @@ class _ModelViewerScreenState extends State<ModelViewerScreen> {
               ),
             ),
           ),
-          
+
           // Pen edit button
           Positioned(
             top: 40,

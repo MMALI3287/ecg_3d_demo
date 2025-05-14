@@ -51,7 +51,9 @@ class _LayersScreenState extends State<LayersScreen> {
             // Explanation Card
             Card(
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Column(
@@ -73,22 +75,27 @@ class _LayersScreenState extends State<LayersScreen> {
                     SizedBox(height: 16),
                     _buildInfoRow('Original', 'Correct electrode placement'),
                     _buildInfoRow('Misplaces', 'Incorrect electrode placement'),
-                    _buildInfoRow('Missing', 'Electrode that should be present but is not'),
+                    _buildInfoRow(
+                      'Missing',
+                      'Electrode that should be present but is not',
+                    ),
                   ],
                 ),
               ),
             ),
-            
+
             SizedBox(height: 24),
-            
+
             // Electrode Groups
-            ...electrodeGroups.entries.map((entry) => _buildElectrodeGroup(entry.key, entry.value)),
+            ...electrodeGroups.entries.map(
+              (entry) => _buildElectrodeGroup(entry.key, entry.value),
+            ),
           ],
         ),
       ),
     );
   }
-  
+
   Widget _buildInfoRow(String title, String description) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -127,31 +134,30 @@ class _LayersScreenState extends State<LayersScreen> {
       ),
     );
   }
-  
+
   Widget _buildElectrodeGroup(String groupName, List<String> electrodes) {
     return Card(
       margin: EdgeInsets.only(bottom: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ExpansionTile(
-        title: Text(
-          groupName,
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: Text(groupName, style: TextStyle(fontWeight: FontWeight.bold)),
         children: [
-          ...electrodes.map((electrode) => ListTile(
-            title: Text(electrode.replaceAll('Electrods ', '')),
-            leading: Icon(
-              _getIconForElectrode(electrode),
-              color: _getColorForElectrode(electrode),
+          ...electrodes.map(
+            (electrode) => ListTile(
+              title: Text(electrode.replaceAll('Electrods ', '')),
+              leading: Icon(
+                _getIconForElectrode(electrode),
+                color: _getColorForElectrode(electrode),
+              ),
+              dense: true,
             ),
-            dense: true,
-          )),
+          ),
         ],
       ),
     );
   }
-  
+
   IconData _getIconForElectrode(String electrode) {
     if (electrode.toLowerCase().contains('green')) {
       return Icons.circle;
@@ -161,7 +167,7 @@ class _LayersScreenState extends State<LayersScreen> {
       return Icons.square;
     }
   }
-  
+
   Color _getColorForElectrode(String electrode) {
     if (electrode.toLowerCase().contains('green')) {
       return Colors.green;
