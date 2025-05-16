@@ -17,13 +17,60 @@
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png" />
-
   <title>ecg_3d_demo</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Model Viewer Script -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.1.1/model-viewer.min.js"></script>
+
+  <!-- Viewport and styling -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .flutter-target {
+      width: 100%;
+      height: 100%;
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      background-color: #eee;
+    }
+  </style>
 </head>
 
 <body>
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.addEventListener('load', function () {
+      // This helps ensure model-viewer is properly initialized
+      if (window.HTMLScriptElement.supports && window.HTMLScriptElement.supports('importmap')) {
+        console.log('ImportMap supported');
+      }
+      setTimeout(() => {
+        const modelViewer = document.querySelector('model-viewer');
+        if (modelViewer) {
+          console.log('ModelViewer found');
+          modelViewer.addEventListener('load', () => {
+            console.log('Model loaded');
+          });
+          modelViewer.addEventListener('error', (error) => {
+            console.error('Model error:', error);
+          });
+        } else {
+          console.log('ModelViewer not found');
+        }
+      }, 2000);
+    });
+  </script>
 </body>
 
 </html>

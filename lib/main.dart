@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -8,20 +9,16 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter 3D Model Viewer',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const InteractiveModelViewPage(),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+    title: 'Flutter 3D Model Viewer',
+    theme: ThemeData(primarySwatch: Colors.blue),
+    home: const InteractiveModelViewPage(),
+  );
 }
 
 class InteractiveModelViewPage extends StatefulWidget {
   const InteractiveModelViewPage({Key? key}) : super(key: key);
-
   @override
   _InteractiveModelViewPageState createState() =>
       _InteractiveModelViewPageState();
@@ -30,153 +27,145 @@ class InteractiveModelViewPage extends StatefulWidget {
 class _InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
   WebViewController? _controller;
 
-  // Updated material names to match the 3D model
-  final String electrodeNodeNameGreen = 'RBOk';
-  final String electrodeNodeNameRed = 'RBMiss';
-  final String electrodeNodeNameWhite = 'RBN';
+  final String electrodeNodeGreen = 'Electrods_Original_Green';
+  final String electrodeNodeRed = 'Electrods_Original_Red';
+  final String electrodeNodeWhite = 'Electrods_Original_White';
 
-  // Track visibility state
   bool isGreenVisible = true;
   bool isRedVisible = true;
   bool isWhiteVisible = true;
+
   @override
   void initState() {
     super.initState();
   }
 
-  void materialNames() {
-    if (_controller != null) {
-      final jsScript = '''
-        (async () => {
-          const modelViewer = document.querySelector('model-viewer');
-          
-          await new Promise((resolve) => {
-            if (modelViewer.loaded) {
-              resolve();
-            } else {
-              modelViewer.addEventListener('load', () => resolve(), { once: true });
-            }
-          });
-
-          console.log('Model loaded, checking materials...');
-          const model = await modelViewer.model;
-
-          if (model && model.materials) {
-            console.log('Total materials found:', model.materials.length);
-            console.log('--- Available Materials ---');
-            model.materials.forEach(material => {
-              console.log('Material name:', material.name);
-              console.log('Material properties:', {
-                baseColorFactor: material.pbrMetallicRoughness?.baseColorFactor,
-                alphaMode: material.alphaMode
-              });
-            });
-          } else {
-            console.log('No materials found or model not loaded properly');
+  void _setupConsole() {
+    if (_controller == null) return;
+    _controller!
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..addJavaScriptChannel(
+        'Console',
+        onMessageReceived: (m) {
+          print('WebView Console: ${m.message}');
+        },
+      )
+      ..runJavaScript(r'''
+        (function() {
+          function serialize(args) {
+            try { return JSON.stringify(Array.from(args)); }
+            catch { return Array.from(args).map(String).join(' '); }
           }
-          console.log('--------------------------');
+          ['log','warn','error'].forEach(level=>{
+            const orig=console[level];
+            console[level]=function(){
+              Console.postMessage(level.toUpperCase()+': '+serialize(arguments));
+              orig.apply(console,arguments);
+            };
+          });
+          window.onerror=(msg,src,ln)=> {
+            Console.postMessage('ERROR: '+msg+' at '+src+':'+ln);
+            return false;
+          };
         })();
-      ''';
-      _controller!.runJavaScript(jsScript);
-    } else {
-      print("WebViewController not ready yet.");
-    }
+      ''');
   }
 
-  void toggleNodeVisibility(String materialName, bool isVisible) {
-    if (_controller != null) {
-      final jsScript = '''
-        (async () => {
-          const modelViewer = document.querySelector('model-viewer');
-          await modelViewer.model;
+  void listHierarchy() {
+    if (_controller == null) return;
+    _controller!.runJavaScript(r'''
+(async()=> {
+  const mv=document.querySelector('model-viewer');
+  if(!mv) return console.error('No <model-viewer>');
+  await new Promise(r=>mv.loaded?r():mv.addEventListener('load',r,{once:true}));
+  console.log('--- Hierarchy names ---');
+  const model=await mv.model;
+  // pick the internal "hierarchy" symbol
+  const sym=Object.getOwnPropertySymbols(model)
+    .find(s=>s.description==='hierarchy');
+  if(!sym) {
+    console.error('No hierarchy symbol');
+    return console.dir(model);
+  }
+  model[sym].forEach(o=> console.log(' •', o.name));
+  console.log('--- end ---');
+})();''');
+  }
 
-          materialNames();
-          
-          const material = modelViewer.model.materials.find(m => m.name === '$materialName');
-          if (material) {
-            material.pbrMetallicRoughness.setBaseColorFactor([
-              material.pbrMetallicRoughness.baseColorFactor[0],
-              material.pbrMetallicRoughness.baseColorFactor[1],
-              material.pbrMetallicRoughness.baseColorFactor[2],
-              $isVisible ? 1.0 : 0.0
-            ]);
-            material.alphaMode = 'BLEND';
-            console.log('Material "$materialName" visibility set to $isVisible');
-          } else {
-            console.warn('Material "$materialName" not found in the model.');
-          }
-        })();
-      ''';
-      _controller!.runJavaScript(jsScript);
-    } else {
-      print("WebViewController not ready yet.");
+  void toggleNode(String nodeName, bool visible) {
+    if (_controller == null) return;
+    final nJs = json.encode(nodeName);
+    final vJs = visible.toString();
+    _controller!.runJavaScript('''
+(async()=> {
+  const mv=document.querySelector('model-viewer');
+  if(!mv) return console.error('No <model-viewer>');
+  await new Promise(r=>mv.loaded?r():mv.addEventListener('load',r,{once:true}));
+  const model=await mv.model;
+  // find the symbol-based hierarchy array
+  const sym=Object.getOwnPropertySymbols(model)
+    .find(s=>s.description==='hierarchy');
+  if(!sym) return console.error('No hierarchy symbol');
+  const node=model[sym].find(o=>o.name===$nJs);
+  if(!node) return console.error('Node not found:', $nJs);
+  if(!node.materials|| !(node.materials instanceof Map)) {
+    console.error('No materials map on node:', $nJs);
+    return console.dir(node);
+  }
+  node.materials.forEach(mat=>{
+    if(mat.pbrMetallicRoughness) {
+      const c=mat.pbrMetallicRoughness.baseColorFactor;
+      mat.pbrMetallicRoughness.setBaseColorFactor([c[0],c[1],c[2], $vJs?1:0]);
+      mat.alphaMode='BLEND';
     }
+  });
+  console.log('Toggled materials alpha for', $nJs, '=>', $vJs);
+})();''');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Interactive 3D Human Body Model')),
+      appBar: AppBar(title: const Text('Flutter 3D Model Viewer')),
       body: Column(
         children: [
           Expanded(
             child: ModelViewer(
-              backgroundColor: const Color.fromARGB(0xFF, 0xEE, 0xEE, 0xEE),
               src: 'assets/Human_Body_3D.glb',
-              alt: 'A 3D model of a human body with electrodes',
+              alt: '3D body',
               autoRotate: true,
               cameraControls: true,
-              onWebViewCreated: (controller) {
-                setState(() {
-                  _controller = controller;
-                  print("WebViewController created.");
-                });
-                // Call materialNames after a short delay to ensure everything is initialized
-                Future.delayed(const Duration(milliseconds: 500), () {
-                  materialNames();
-                });
+              loading: Loading.eager,
+              onWebViewCreated: (c) {
+                _controller = c;
+                print('WebViewController created');
+                _setupConsole();
+                Future.delayed(
+                  const Duration(milliseconds: 1000),
+                  listHierarchy,
+                );
               },
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ElevatedButton(
-                      onPressed:
-                          _controller != null
-                              ? () {
-                                setState(() => isGreenVisible = false);
-                                toggleNodeVisibility(
-                                  electrodeNodeNameGreen,
-                                  false,
-                                );
-                              }
-                              : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isGreenVisible ? Colors.green : Colors.grey,
-                      ),
+                      onPressed: () {
+                        setState(() => isGreenVisible = false);
+                        toggleNode(electrodeNodeGreen, false);
+                      },
                       child: const Text('Hide Green'),
                     ),
                     ElevatedButton(
-                      onPressed:
-                          _controller != null
-                              ? () {
-                                setState(() => isGreenVisible = true);
-                                toggleNodeVisibility(
-                                  electrodeNodeNameGreen,
-                                  true,
-                                );
-                              }
-                              : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            !isGreenVisible ? Colors.green : Colors.grey,
-                      ),
+                      onPressed: () {
+                        setState(() => isGreenVisible = true);
+                        toggleNode(electrodeNodeGreen, true);
+                      },
                       child: const Text('Show Green'),
                     ),
                   ],
@@ -186,37 +175,17 @@ class _InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ElevatedButton(
-                      onPressed:
-                          _controller != null
-                              ? () {
-                                setState(() => isRedVisible = false);
-                                toggleNodeVisibility(
-                                  electrodeNodeNameRed,
-                                  false,
-                                );
-                              }
-                              : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isRedVisible ? Colors.red : Colors.grey,
-                      ),
+                      onPressed: () {
+                        setState(() => isRedVisible = false);
+                        toggleNode(electrodeNodeRed, false);
+                      },
                       child: const Text('Hide Red'),
                     ),
                     ElevatedButton(
-                      onPressed:
-                          _controller != null
-                              ? () {
-                                setState(() => isRedVisible = true);
-                                toggleNodeVisibility(
-                                  electrodeNodeNameRed,
-                                  true,
-                                );
-                              }
-                              : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            !isRedVisible ? Colors.red : Colors.grey,
-                      ),
+                      onPressed: () {
+                        setState(() => isRedVisible = true);
+                        toggleNode(electrodeNodeRed, true);
+                      },
                       child: const Text('Show Red'),
                     ),
                   ],
@@ -226,39 +195,17 @@ class _InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ElevatedButton(
-                      onPressed:
-                          _controller != null
-                              ? () {
-                                setState(() => isWhiteVisible = false);
-                                toggleNodeVisibility(
-                                  electrodeNodeNameWhite,
-                                  false,
-                                );
-                              }
-                              : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isWhiteVisible ? Colors.white : Colors.grey,
-                        foregroundColor: Colors.black,
-                      ),
+                      onPressed: () {
+                        setState(() => isWhiteVisible = false);
+                        toggleNode(electrodeNodeWhite, false);
+                      },
                       child: const Text('Hide White'),
                     ),
                     ElevatedButton(
-                      onPressed:
-                          _controller != null
-                              ? () {
-                                setState(() => isWhiteVisible = true);
-                                toggleNodeVisibility(
-                                  electrodeNodeNameWhite,
-                                  true,
-                                );
-                              }
-                              : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            !isWhiteVisible ? Colors.white : Colors.grey,
-                        foregroundColor: Colors.black,
-                      ),
+                      onPressed: () {
+                        setState(() => isWhiteVisible = true);
+                        toggleNode(electrodeNodeWhite, true);
+                      },
                       child: const Text('Show White'),
                     ),
                   ],
@@ -269,11 +216,5 @@ class _InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller = null;
-    super.dispose();
   }
 }
