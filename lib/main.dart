@@ -40,87 +40,93 @@ class _InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
     super.initState();
   }
 
-  void _setupConsole() {
+  void _setupConsoleListener() {
     if (_controller == null) return;
     _controller!
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel(
         'Console',
-        onMessageReceived: (m) {
-          print('WebView Console: ${m.message}');
+        onMessageReceived: (msg) {
+          print('WebView ▶ ${msg.message}');
         },
       )
       ..runJavaScript(r'''
-        (function() {
-          function serialize(args) {
-            try { return JSON.stringify(Array.from(args)); }
-            catch { return Array.from(args).map(String).join(' '); }
-          }
-          ['log','warn','error'].forEach(level=>{
-            const orig=console[level];
-            console[level]=function(){
-              Console.postMessage(level.toUpperCase()+': '+serialize(arguments));
-              orig.apply(console,arguments);
-            };
-          });
-          window.onerror=(msg,src,ln)=> {
-            Console.postMessage('ERROR: '+msg+' at '+src+':'+ln);
-            return false;
-          };
-        })();
-      ''');
+(function(){
+  function serialize(a){ try{return JSON.stringify(Array.from(a));}catch{return Array.from(a).join(' ');} }
+  ['log','warn','error'].forEach(l=>{
+    const o=console[l];
+    console[l]=function(){
+      Console.postMessage(l.toUpperCase()+': '+serialize(arguments));
+      o.apply(console,arguments);
+    }
+  });
+  window.onerror=(m,s,l,n)=> Console.postMessage('ERROR: '+m+' @'+s+':'+l);
+})();
+''');
   }
 
   void listHierarchy() {
     if (_controller == null) return;
     _controller!.runJavaScript(r'''
-(async()=> {
+(async()=>{
   const mv=document.querySelector('model-viewer');
   if(!mv) return console.error('No <model-viewer>');
   await new Promise(r=>mv.loaded?r():mv.addEventListener('load',r,{once:true}));
-  console.log('--- Hierarchy names ---');
   const model=await mv.model;
-  // pick the internal "hierarchy" symbol
   const sym=Object.getOwnPropertySymbols(model)
-    .find(s=>s.description==='hierarchy');
-  if(!sym) {
-    console.error('No hierarchy symbol');
-    return console.dir(model);
-  }
-  model[sym].forEach(o=> console.log(' •', o.name));
+                .find(s=>s.description==='hierarchy');
+  if(!sym) return console.error('No hierarchy symbol');
+  console.log('--- Hierarchy names ---');
+  model[sym].forEach(o=>console.log(' •',o.name));
   console.log('--- end ---');
-})();''');
+})();
+''');
   }
 
-  void toggleNode(String nodeName, bool visible) {
+  void toggleNodeVisibility(String nodeName, bool isVisible) {
     if (_controller == null) return;
-    final nJs = json.encode(nodeName);
-    final vJs = visible.toString();
-    _controller!.runJavaScript('''
-(async()=> {
-  const mv=document.querySelector('model-viewer');
-  if(!mv) return console.error('No <model-viewer>');
-  await new Promise(r=>mv.loaded?r():mv.addEventListener('load',r,{once:true}));
-  const model=await mv.model;
-  // find the symbol-based hierarchy array
-  const sym=Object.getOwnPropertySymbols(model)
-    .find(s=>s.description==='hierarchy');
-  if(!sym) return console.error('No hierarchy symbol');
-  const node=model[sym].find(o=>o.name===$nJs);
-  if(!node) return console.error('Node not found:', $nJs);
-  if(!node.materials|| !(node.materials instanceof Map)) {
-    console.error('No materials map on node:', $nJs);
+    final jsName = json.encode(nodeName);
+    final jsVis = isVisible.toString();
+    final js = """
+(async()=>{
+  const mv = document.querySelector('model-viewer');
+  if (!mv) return console.error('No <model-viewer>');
+  await new Promise(r=> mv.loaded ? r() : mv.addEventListener('load', r, {once:true}));
+
+  const model = await mv.model;
+  const sym = Object.getOwnPropertySymbols(model)
+                  .find(s => s.description==='hierarchy');
+  if (!sym) return console.error('No hierarchy symbol');
+  const node = model[sym].find(o => o.name===${jsName});
+  if (!node) return console.error('Node not found:', ${jsName});
+
+  if (!node.mesh) {
+    console.error('No .mesh on node:', ${jsName});
     return console.dir(node);
   }
-  node.materials.forEach(mat=>{
-    if(mat.pbrMetallicRoughness) {
-      const c=mat.pbrMetallicRoughness.baseColorFactor;
-      mat.pbrMetallicRoughness.setBaseColorFactor([c[0],c[1],c[2], $vJs?1:0]);
-      mat.alphaMode='BLEND';
-    }
-  });
-  console.log('Toggled materials alpha for', $nJs, '=>', $vJs);
-})();''');
+
+  // Capture original parent once
+  if (!node._origParent && node.mesh.parent) {
+    node._origParent = node.mesh.parent;
+  }
+  const parent = node._origParent;
+  if (!parent) {
+    console.error('Original parent lost for node:', ${jsName});
+    return;
+  }
+
+  if (${jsVis}) {
+    parent.add(node.mesh);
+    console.log('MESH SHOWN for', ${jsName});
+  } else {
+    parent.remove(node.mesh);
+    console.log('MESH HIDDEN for', ${jsName});
+  }
+})();
+""";
+    _controller!.runJavaScript(js).catchError((e) {
+      print('Flutter: JS toggle error: $e');
+    });
   }
 
   @override
@@ -136,14 +142,11 @@ class _InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
               autoRotate: true,
               cameraControls: true,
               loading: Loading.eager,
-              onWebViewCreated: (c) {
-                _controller = c;
-                print('WebViewController created');
-                _setupConsole();
-                Future.delayed(
-                  const Duration(milliseconds: 1000),
-                  listHierarchy,
-                );
+              onWebViewCreated: (ctrl) {
+                _controller = ctrl;
+                print('▶ WebViewController created');
+                _setupConsoleListener();
+                Future.delayed(const Duration(seconds: 1), listHierarchy);
               },
             ),
           ),
@@ -157,14 +160,14 @@ class _InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
                     ElevatedButton(
                       onPressed: () {
                         setState(() => isGreenVisible = false);
-                        toggleNode(electrodeNodeGreen, false);
+                        toggleNodeVisibility(electrodeNodeGreen, false);
                       },
                       child: const Text('Hide Green'),
                     ),
                     ElevatedButton(
                       onPressed: () {
                         setState(() => isGreenVisible = true);
-                        toggleNode(electrodeNodeGreen, true);
+                        toggleNodeVisibility(electrodeNodeGreen, true);
                       },
                       child: const Text('Show Green'),
                     ),
@@ -177,14 +180,14 @@ class _InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
                     ElevatedButton(
                       onPressed: () {
                         setState(() => isRedVisible = false);
-                        toggleNode(electrodeNodeRed, false);
+                        toggleNodeVisibility(electrodeNodeRed, false);
                       },
                       child: const Text('Hide Red'),
                     ),
                     ElevatedButton(
                       onPressed: () {
                         setState(() => isRedVisible = true);
-                        toggleNode(electrodeNodeRed, true);
+                        toggleNodeVisibility(electrodeNodeRed, true);
                       },
                       child: const Text('Show Red'),
                     ),
@@ -197,14 +200,14 @@ class _InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
                     ElevatedButton(
                       onPressed: () {
                         setState(() => isWhiteVisible = false);
-                        toggleNode(electrodeNodeWhite, false);
+                        toggleNodeVisibility(electrodeNodeWhite, false);
                       },
                       child: const Text('Hide White'),
                     ),
                     ElevatedButton(
                       onPressed: () {
                         setState(() => isWhiteVisible = true);
-                        toggleNode(electrodeNodeWhite, true);
+                        toggleNodeVisibility(electrodeNodeWhite, true);
                       },
                       child: const Text('Show White'),
                     ),
