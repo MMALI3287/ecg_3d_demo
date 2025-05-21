@@ -76,7 +76,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
   if(!mv) return console.error('No <model-viewer>');
   
   try {
-    // Make sure model is loaded first
     if(!mv.loaded) {
       console.log('Model not loaded yet, waiting...');
       await new Promise(r => mv.addEventListener('load', r, {once:true}));
@@ -85,7 +84,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
     // Check all the object's properties
     console.log('--- Hierarchy names ---');
     
-    // Look for symbols
     for(const sym of Object.getOwnPropertySymbols(mv.model)) {
       console.log(`Symbol: ${sym.toString()}`);
       try {
@@ -118,7 +116,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
   if (!modelViewer) return console.error('No model-viewer found');
   
   try {
-    // Wait for the model to be fully loaded
     if(!modelViewer.loaded) {
       console.log('Waiting for model to load...');
       await new Promise(resolve => modelViewer.addEventListener('load', resolve, {once: true}));
@@ -131,7 +128,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
     
     let success = false;
     
-    // Method 1: Try to directly manipulate the primitive mesh at the "primitives" symbol
     try {
       const primitivesSymbol = Object.getOwnPropertySymbols(modelViewer.model)
         .find(sym => sym.toString().includes('primitives'));
@@ -144,7 +140,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
             if (targetPrimitive.visible !== undefined) {
               targetPrimitive.visible = $jsVis;
 
-              // Force a render update
               if (modelViewer.needsRender !== undefined) {
                 modelViewer.needsRender = true;
               }
@@ -153,7 +148,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
               success = true;
             }
             
-            // Try to modify material properties as well
             if (targetPrimitive.material) {
               targetPrimitive.material.visible = $jsVis;
               targetPrimitive.material.transparent = !$jsVis;
@@ -168,17 +162,14 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
       console.log('Primitives method failed:', e.toString());
     }
     
-    // Method 2: Try to find and modify all objects with the target name using scene traversal
     try {
       if (!success && modelViewer.model.traverse) {
         modelViewer.model.traverse((object) => {
           if (object.name === $jsName || object.name.includes($jsName)) {
-            // Apply to the object itself
             if (object.visible !== undefined) {
               object.visible = $jsVis;
             }
             
-            // Apply to all child objects
             if (object.children && object.children.length > 0) {
               object.children.forEach(child => {
                 if (child.visible !== undefined) {
@@ -193,7 +184,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
               });
             }
             
-            // Apply to object's material if it exists
             if (object.material) {
               object.material.visible = $jsVis;
               object.material.transparent = !$jsVis;
@@ -210,7 +200,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
       console.log('Traverse method failed:', e.toString());
     }
     
-    // Method 3: Directly manipulate hierarchy nodes
     try {
       if (!success) {
         const hierarchySymbol = Object.getOwnPropertySymbols(modelViewer.model)
@@ -221,11 +210,9 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
           if (Array.isArray(hierarchyNodes)) {
             const targetNode = hierarchyNodes.find(n => n && n.name === $jsName);
             if (targetNode) {
-              // Try multiple property paths
               if (targetNode.mesh) {
                 targetNode.mesh.visible = $jsVis;
 
-                // Scale to zero as a backup method
                 if (!$jsVis) {
                   targetNode.mesh.scale.set(0.00001, 0.00001, 0.00001);
                 } else {
@@ -243,7 +230,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
                 success = true;
               }
               
-              // Try with the children
               if (targetNode.children && targetNode.children.length > 0) {
                 targetNode.children.forEach(child => {
                   if (child.visible !== undefined) {
@@ -268,7 +254,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
       console.log('Hierarchy method failed:', e.toString());
     }
     
-    // Force a render update
     if (success) {
       if (modelViewer.updateComplete) {
         await modelViewer.updateComplete;
@@ -309,15 +294,12 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
               loading: Loading.eager,
               backgroundColor: const Color.fromARGB(0xFF, 0xEE, 0xEE, 0xEE),
               relatedJs: r'''
-              // Wait for model to load, then initialize
               const modelViewer = document.querySelector('model-viewer');
               modelViewer.addEventListener('load', () => {
                 console.log('Model loaded from HTML directly');
-                // Ensure model is fully loaded
                 setTimeout(() => {
                   if (!window.modelInitialized) {
                     window.modelInitialized = true;
-                    // Force a render refresh
                     modelViewer.dismissPoster();
                     if (modelViewer.needsRender !== undefined) {
                       modelViewer.needsRender = true;
@@ -431,30 +413,6 @@ class InteractiveModelViewPageState extends State<InteractiveModelViewPage> {
                       child: const Text('Show White'),
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_controller == null) return;
-                    _controller!.runJavaScript(r'''
-                    // Force complete model refresh
-                    const modelViewer = document.querySelector('model-viewer');
-                    if (modelViewer) {
-                      if (modelViewer.model) {
-                        // Manually trigger a full scene graph update
-                        modelViewer.model.traverse(obj => {
-                          if (obj.material) obj.material.needsUpdate = true;
-                        });
-                      }
-                      // Force a render
-                      if (typeof modelViewer.requestUpdate === 'function') {
-                        modelViewer.requestUpdate();
-                      }
-                      console.log('Forced model refresh');
-                    }
-                    ''');
-                  },
-                  child: const Text('Force Refresh Model'),
                 ),
               ],
             ),
