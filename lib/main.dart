@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'dart:async';
 
 void main() {
   runApp(const MyApp());
@@ -38,104 +36,19 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
   bool showRL = true;
   bool showLL = true;
 
-  // SVG data
-  String? svgData;
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSvg();
-  }
-
-  Future<void> _loadSvg() async {
-    try {
-      // Load the SVG file as a string
-      final String data = await rootBundle.loadString('assets/Lead6.svg');
-      setState(() {
-        svgData = data;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      debugPrint('Error loading SVG: $e');
-    }
-  }
-
-  String _getModifiedSvgData() {
-    if (svgData == null) return '';
-    
-    String modifiedSvg = svgData!;
-    
-    // The IDs for our electrodes - these are based on examining the SVG content
-    final Map<String, Map<String, dynamic>> electrodes = {
-      'RA': {
-        'visible': showRA,
-        'circleId': 'circle cx="77.0488" cy="100.049"',
-        'textId': 'path d="M70.6562 104.604V96.568H73.3713'
-      },
-      'LA': {
-        'visible': showLA,
-        'circleId': 'circle cx="164.049" cy="100.049"',
-        'textId': 'path d="M157.656 104.604V96.568H158.629'
-      },
-      'RL': {
-        'visible': showRL,
-        'circleId': 'circle cx="81.0488" cy="243.049"',
-        'textId': 'path d="M75.5766 247.604V239.568H78.2917'
-      },
-      'LL': {
-        'visible': showLL,
-        'circleId': 'circle cx="158.049" cy="242.049"',
-        'textId': 'path d="M153.498 246.604V238.568H154.471'
-      },
-    };
-
-    // Modify each electrode based on visibility
-    electrodes.forEach((key, electrode) {
-      if (!electrode['visible']) {
-        // Find the circle and replace it with an empty/transparent circle
-        // We keep the position attributes but change the fill to "none" and opacity to 0
-        final String circlePattern = electrode['circleId'];
-        final int circleStart = modifiedSvg.indexOf(circlePattern);
-        
-        if (circleStart != -1) {
-          // Find the end of the circle tag
-          final int circleEnd = modifiedSvg.indexOf('>', circleStart);
-          if (circleEnd != -1) {
-            final String originalCircle = modifiedSvg.substring(circleStart, circleEnd);
-            // Create a new circle with opacity 0
-            final String newCircle = '$originalCircle fill="none" opacity="0"';
-            modifiedSvg = modifiedSvg.replaceRange(circleStart, circleEnd, newCircle);
-          }
-        }
-        
-        // Hide the label text by setting its opacity to 0
-        final String textPattern = electrode['textId'];
-        final int textStart = modifiedSvg.indexOf(textPattern);
-        
-        if (textStart != -1) {
-          // Add opacity attribute to the path
-          final int textEnd = modifiedSvg.indexOf('>', textStart);
-          if (textEnd != -1) {
-            final String originalText = modifiedSvg.substring(textStart, textEnd);
-            final String newText = '$originalText opacity="0"';
-            modifiedSvg = modifiedSvg.replaceRange(textStart, textEnd, newText);
-          }
-        }
-      }
-    });
-
-    return modifiedSvg;
-  }
+  // Electrode positions - these will need to be adjusted based on the actual SVG dimensions
+  // Using relative positions (0.0 to 1.0) for better responsiveness
+  final Map<String, Map<String, double>> electrodePositions = {
+    'RA': {'x': 0.32, 'y': 0.185}, // Right Arm - left side on image
+    'LA': {'x': 0.68, 'y': 0.185}, // Left Arm - right side on image  
+    'RL': {'x': 0.34, 'y': 0.45},  // Right Leg - left side on image
+    'LL': {'x': 0.66, 'y': 0.45},  // Left Leg - right side on image
+  };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      // No AppBar as requested
       body: SafeArea(
         child: Column(
           children: [
@@ -152,7 +65,7 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
               ),
             ),
             
-            // SVG Display - Expanded to fill available space
+            // SVG Display with electrode overlays
             Expanded(
               flex: 3,
               child: Container(
@@ -161,15 +74,31 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Center(
-                  child: isLoading
-                    ? const CircularProgressIndicator()
-                    : svgData == null
-                        ? const Text('Failed to load SVG')
-                        : SvgPicture.string(
-                            _getModifiedSvgData(),
-                            fit: BoxFit.contain,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Stack(
+                        children: [
+                          // Background skeleton SVG
+                          Center(
+                            child: SvgPicture.asset(
+                              'assets/Lead6a.svg',
+                              fit: BoxFit.contain,
+                              width: constraints.maxWidth,
+                              height: constraints.maxHeight,
+                            ),
                           ),
+                          
+                          // Electrode PNG overlays
+                          if (showRA) _buildElectrodeOverlay('RA', constraints),
+                          if (showLA) _buildElectrodeOverlay('LA', constraints),
+                          if (showRL) _buildElectrodeOverlay('RL', constraints),
+                          if (showLL) _buildElectrodeOverlay('LL', constraints),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -224,6 +153,49 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                       ),
                     ),
                     
+                    // Reset all button
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                showRA = true;
+                                showLA = true;
+                                showRL = true;
+                                showLL = true;
+                              });
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Show All'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade600,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                showRA = false;
+                                showLA = false;
+                                showRL = false;
+                                showLL = false;
+                              });
+                            },
+                            icon: const Icon(Icons.visibility_off),
+                            label: const Text('Hide All'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey.shade600,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
                     // Bottom note
                     Text(
                       'Standard 12-Lead ECG Placement',
@@ -238,6 +210,38 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+  
+  // Helper to create electrode PNG overlays
+  Widget _buildElectrodeOverlay(String electrodeName, BoxConstraints constraints) {
+    final position = electrodePositions[electrodeName]!;
+    const double electrodeSize = 40.0; // Size of the electrode PNG
+    
+    return Positioned(
+      left: (constraints.maxWidth * position['x']!) - (electrodeSize / 2),
+      top: (constraints.maxHeight * position['y']!) - (electrodeSize / 2),
+      child: Container(
+        width: electrodeSize,
+        height: electrodeSize,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(electrodeSize / 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(electrodeSize / 2),
+          child: Image.asset(
+            'assets/$electrodeName.png',
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );
