@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'dart:async';
 
 void main() {
   runApp(const MyApp());
@@ -36,8 +38,98 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
   bool showRL = true;
   bool showLL = true;
 
-  // SVG key for reference
-  final GlobalKey svgKey = GlobalKey();
+  // SVG data
+  String? svgData;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSvg();
+  }
+
+  Future<void> _loadSvg() async {
+    try {
+      // Load the SVG file as a string
+      final String data = await rootBundle.loadString('assets/Lead6.svg');
+      setState(() {
+        svgData = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      debugPrint('Error loading SVG: $e');
+    }
+  }
+
+  String _getModifiedSvgData() {
+    if (svgData == null) return '';
+    
+    String modifiedSvg = svgData!;
+    
+    // The IDs for our electrodes - these are based on examining the SVG content
+    final Map<String, Map<String, dynamic>> electrodes = {
+      'RA': {
+        'visible': showRA,
+        'circleId': 'circle cx="77.0488" cy="100.049"',
+        'textId': 'path d="M70.6562 104.604V96.568H73.3713'
+      },
+      'LA': {
+        'visible': showLA,
+        'circleId': 'circle cx="164.049" cy="100.049"',
+        'textId': 'path d="M157.656 104.604V96.568H158.629'
+      },
+      'RL': {
+        'visible': showRL,
+        'circleId': 'circle cx="81.0488" cy="243.049"',
+        'textId': 'path d="M75.5766 247.604V239.568H78.2917'
+      },
+      'LL': {
+        'visible': showLL,
+        'circleId': 'circle cx="158.049" cy="242.049"',
+        'textId': 'path d="M153.498 246.604V238.568H154.471'
+      },
+    };
+
+    // Modify each electrode based on visibility
+    electrodes.forEach((key, electrode) {
+      if (!electrode['visible']) {
+        // Find the circle and replace it with an empty/transparent circle
+        // We keep the position attributes but change the fill to "none" and opacity to 0
+        final String circlePattern = electrode['circleId'];
+        final int circleStart = modifiedSvg.indexOf(circlePattern);
+        
+        if (circleStart != -1) {
+          // Find the end of the circle tag
+          final int circleEnd = modifiedSvg.indexOf('>', circleStart);
+          if (circleEnd != -1) {
+            final String originalCircle = modifiedSvg.substring(circleStart, circleEnd);
+            // Create a new circle with opacity 0
+            final String newCircle = '$originalCircle fill="none" opacity="0"';
+            modifiedSvg = modifiedSvg.replaceRange(circleStart, circleEnd, newCircle);
+          }
+        }
+        
+        // Hide the label text by setting its opacity to 0
+        final String textPattern = electrode['textId'];
+        final int textStart = modifiedSvg.indexOf(textPattern);
+        
+        if (textStart != -1) {
+          // Add opacity attribute to the path
+          final int textEnd = modifiedSvg.indexOf('>', textStart);
+          if (textEnd != -1) {
+            final String originalText = modifiedSvg.substring(textStart, textEnd);
+            final String newText = '$originalText opacity="0"';
+            modifiedSvg = modifiedSvg.replaceRange(textStart, textEnd, newText);
+          }
+        }
+      }
+    });
+
+    return modifiedSvg;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,22 +162,14 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
-                  child: Stack(
-                    children: [
-                      // Main SVG
-                      SvgPicture.asset(
-                        'assets/Lead6.svg',
-                        key: svgKey,
-                        fit: BoxFit.contain,
-                      ),
-                      
-                      // Overlay circles for hiding electrodes
-                      if (!showRA) _buildHidingCircle(77.0, 100.0),
-                      if (!showLA) _buildHidingCircle(164.0, 100.0),
-                      if (!showRL) _buildHidingCircle(81.0, 243.0),
-                      if (!showLL) _buildHidingCircle(158.0, 242.0),
-                    ],
-                  ),
+                  child: isLoading
+                    ? const CircularProgressIndicator()
+                    : svgData == null
+                        ? const Text('Failed to load SVG')
+                        : SvgPicture.string(
+                            _getModifiedSvgData(),
+                            fit: BoxFit.contain,
+                          ),
                 ),
               ),
             ),
@@ -203,23 +287,6 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
             activeColor: color,
           ),
         ],
-      ),
-    );
-  }
-  
-  // Helper to create a white circle to hide electrodes
-  Widget _buildHidingCircle(double x, double y) {
-    return Positioned(
-      left: x - 15, // Adjust based on SVG scale
-      top: y - 15,  // Adjust based on SVG scale
-      child: Container(
-        width: 30,
-        height: 30,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.shade300, width: 2),
-        ),
       ),
     );
   }
