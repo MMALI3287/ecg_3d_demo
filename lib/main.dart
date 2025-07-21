@@ -142,37 +142,49 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                   children: [
                     // Electrode toggle buttons in a grid
                     Expanded(
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        childAspectRatio: 2.5,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        children: [
-                          _buildElectrodeToggle(
-                            'RA',
-                            Colors.red.shade700,
-                            showRA,
-                            (value) => setState(() => showRA = value),
-                          ),
-                          _buildElectrodeToggle(
-                            'LA',
-                            Colors.purple.shade700,
-                            showLA,
-                            (value) => setState(() => showLA = value),
-                          ),
-                          _buildElectrodeToggle(
-                            'RL',
-                            Colors.amber.shade700,
-                            showRL,
-                            (value) => setState(() => showRL = value),
-                          ),
-                          _buildElectrodeToggle(
-                            'LL',
-                            Colors.green.shade700,
-                            showLL,
-                            (value) => setState(() => showLL = value),
-                          ),
-                        ],
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          // Calculate responsive aspect ratio based on available space
+                          final double screenWidth =
+                              MediaQuery.of(context).size.width;
+                          final double aspectRatio =
+                              screenWidth > 600
+                                  ? 4.0 // Wider cards for tablets/desktop
+                                  : 2.5; // Standard ratio for phones
+
+                          return GridView.count(
+                            crossAxisCount: 2,
+                            childAspectRatio: aspectRatio,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            children: [
+                              _buildElectrodeToggle(
+                                'RA',
+                                Colors.red.shade700,
+                                showRA,
+                                (value) => setState(() => showRA = value),
+                              ),
+                              _buildElectrodeToggle(
+                                'LA',
+                                Colors.purple.shade700,
+                                showLA,
+                                (value) => setState(() => showLA = value),
+                              ),
+                              _buildElectrodeToggle(
+                                'RL',
+                                Colors.amber.shade700,
+                                showRL,
+                                (value) => setState(() => showRL = value),
+                              ),
+                              _buildElectrodeToggle(
+                                'LL',
+                                Colors.green.shade700,
+                                showLL,
+                                (value) => setState(() => showLL = value),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
 
