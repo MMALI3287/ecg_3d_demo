@@ -233,7 +233,10 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
     final double clampedElectrodeSize = electrodeSize.clamp(20.0, 60.0);
     final double statusIndicatorSize = clampedElectrodeSize * 0.8;
 
+    // Calculate the actual dimensions of the status indicator based on its type
     final double actualIndicatorWidth =
+        status == 'noisy' ? statusIndicatorSize * 2 : statusIndicatorSize;
+    final double actualIndicatorHeight =
         status == 'noisy' ? statusIndicatorSize * 2 : statusIndicatorSize;
 
     return Positioned(
@@ -242,7 +245,7 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
       top:
           (constraints.maxHeight * position['y']!) -
           (clampedElectrodeSize / 2) -
-          actualIndicatorWidth -
+          actualIndicatorHeight -  // Now using height instead of width
           8,
       child: GestureDetector(
         onTap: () => _cycleElectrodeStatus(electrodeName),
