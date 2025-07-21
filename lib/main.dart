@@ -97,67 +97,104 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // SVG Display with electrode overlays - Takes most of the screen
+            // Main content area with image and status column
             Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: AspectRatio(
-                    aspectRatio: 240 / 541, // Maintain exact SVG aspect ratio
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return Stack(
-                          children: [
-                            // Background skeleton PNG
-                            Positioned.fill(
-                              child: Image.asset(
-                                'assets/Lead6a.png',
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey.shade300,
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.image_not_supported,
-                                            color: Colors.grey.shade600,
-                                            size: 48,
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Lead6a.png not found',
-                                            style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontSize: 14,
+              child: Row(
+                children: [
+                  // SVG Display with electrode overlays
+                  Expanded(
+                    flex: 3,
+                    child: Container(
+                      margin: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: AspectRatio(
+                          aspectRatio: 240 / 541, // Maintain exact SVG aspect ratio
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Stack(
+                                children: [
+                                  // Background skeleton PNG
+                                  Positioned.fill(
+                                    child: Image.asset(
+                                      'assets/Lead6a.png',
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          color: Colors.grey.shade300,
+                                          child: Center(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.image_not_supported,
+                                                  color: Colors.grey.shade600,
+                                                  size: 48,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  'Lead6a.png not found',
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade600,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        ],
-                                      ),
+                                        );
+                                      },
                                     ),
-                                  );
-                                },
-                              ),
-                            ),
+                                  ),
 
-                            // Always show all electrodes
-                            _buildElectrodeOverlay('RA', constraints),
-                            _buildElectrodeOverlay('LA', constraints),
-                            _buildElectrodeOverlay('RL', constraints),
-                            _buildElectrodeOverlay('LL', constraints),
-                          ],
-                        );
-                      },
+                                  // Always show all electrodes
+                                  _buildElectrodeOverlay('RA', constraints),
+                                  _buildElectrodeOverlay('LA', constraints),
+                                  _buildElectrodeOverlay('RL', constraints),
+                                  _buildElectrodeOverlay('LL', constraints),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+
+                  // Status column
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 16.0, top: 16.0, bottom: 16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Status',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _buildStatusColumn('RA', statusRA),
+                          const SizedBox(height: 16),
+                          _buildStatusColumn('LA', statusLA),
+                          const SizedBox(height: 16),
+                          _buildStatusColumn('RL', statusRL),
+                          const SizedBox(height: 16),
+                          _buildStatusColumn('LL', statusLL),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -196,7 +233,6 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
     BoxConstraints constraints,
   ) {
     final position = electrodePositions[electrodeName]!;
-    final String status = _getElectrodeStatus(electrodeName);
 
     final double baseDimension =
         constraints.maxWidth < constraints.maxHeight
@@ -212,53 +248,62 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
           (constraints.maxHeight * position['y']!) - (clampedElectrodeSize / 2),
       child: GestureDetector(
         onTap: () => _cycleElectrodeStatus(electrodeName),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Main electrode
-            Container(
+        child: Container(
+          width: clampedElectrodeSize,
+          height: clampedElectrodeSize,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(clampedElectrodeSize / 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(clampedElectrodeSize / 2),
+            child: Image.asset(
+              'assets/$electrodeName.png',
+              fit: BoxFit.contain,
               width: clampedElectrodeSize,
               height: clampedElectrodeSize,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(clampedElectrodeSize / 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(clampedElectrodeSize / 2),
-                child: Image.asset(
-                  'assets/$electrodeName.png',
-                  fit: BoxFit.contain,
-                  width: clampedElectrodeSize,
-                  height: clampedElectrodeSize,
-                ),
-              ),
             ),
-
-            // Status indicator
-            if (status != 'correct')
-              Positioned(
-                right: -clampedElectrodeSize * 0.3,
-                top: -clampedElectrodeSize * 0.3,
-                child: _buildStatusIndicator(status, clampedElectrodeSize),
-              ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatusIndicator(String status, double electrodeSize) {
+  Widget _buildStatusColumn(String electrodeName, String status) {
+    return GestureDetector(
+      onTap: () => _cycleElectrodeStatus(electrodeName),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Status indicator animation
+          _buildStatusIndicator(status, 40.0),
+          const SizedBox(height: 8),
+          // Electrode name
+          Text(
+            electrodeName,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusIndicator(String status, double size) {
     switch (status) {
       case 'noisy':
         return SizedBox(
-          width: electrodeSize * 1.5, // Bigger for noisy
-          height: electrodeSize * 1.5,
+          width: size * 1.5, // Bigger for noisy
+          height: size * 1.5,
           child: Lottie.asset(
             'assets/noisy.json',
             fit: BoxFit.contain,
@@ -266,15 +311,15 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
               return Icon(
                 Icons.warning,
                 color: Colors.orange,
-                size: electrodeSize * 1.0,
+                size: size * 1.0,
               );
             },
           ),
         );
       case 'error':
         return SizedBox(
-          width: electrodeSize * 1.0, // Normal size for error
-          height: electrodeSize * 1.0,
+          width: size, // Normal size for error
+          height: size,
           child: Lottie.asset(
             'assets/error.json',
             fit: BoxFit.contain,
@@ -282,13 +327,31 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
               return Icon(
                 Icons.error,
                 color: Colors.red,
-                size: electrodeSize * 0.8,
+                size: size * 0.8,
               );
             },
           ),
         );
+      case 'correct':
+        return SizedBox(
+          width: size,
+          height: size,
+          child: Icon(
+            Icons.check_circle,
+            color: Colors.green,
+            size: size * 0.8,
+          ),
+        );
       default:
-        return const SizedBox.shrink();
+        return SizedBox(
+          width: size,
+          height: size,
+          child: Icon(
+            Icons.help_outline,
+            color: Colors.grey,
+            size: size * 0.8,
+          ),
+        );
     }
   }
 }
