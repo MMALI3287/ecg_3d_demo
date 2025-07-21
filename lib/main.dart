@@ -96,31 +96,6 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Text(
-                    'ECG Electrode Placement & Status',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap electrodes or status indicators to cycle status',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             Expanded(
               child: Container(
                 margin: const EdgeInsets.all(16.0),
@@ -246,7 +221,6 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
     final position = electrodePositions[electrodeName]!;
     final String status = _getElectrodeStatus(electrodeName);
 
-    // Don't show anything for correct status
     if (status == 'correct') {
       return const SizedBox.shrink();
     }
@@ -259,13 +233,16 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
     final double clampedElectrodeSize = electrodeSize.clamp(20.0, 60.0);
     final double statusIndicatorSize = clampedElectrodeSize * 0.8;
 
-    // Center the status indicator above the electrode (horizontally centered)
+    final double actualIndicatorWidth =
+        status == 'noisy' ? statusIndicatorSize * 2 : statusIndicatorSize;
+
     return Positioned(
-      left: (constraints.maxWidth * position['x']!) - (statusIndicatorSize / 2),
+      left:
+          (constraints.maxWidth * position['x']!) - (actualIndicatorWidth / 2),
       top:
           (constraints.maxHeight * position['y']!) -
           (clampedElectrodeSize / 2) -
-          statusIndicatorSize -
+          actualIndicatorWidth -
           8,
       child: GestureDetector(
         onTap: () => _cycleElectrodeStatus(electrodeName),
@@ -305,7 +282,6 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
           ),
         );
       default:
-        // Don't show anything for 'correct' or other statuses
         return const SizedBox.shrink();
     }
   }
