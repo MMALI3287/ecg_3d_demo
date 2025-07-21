@@ -186,30 +186,6 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                 ),
               ),
             ),
-
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      statusRA = 'correct';
-                      statusLA = 'correct';
-                      statusRL = 'correct';
-                      statusLL = 'correct';
-                    });
-                  },
-                  icon: const Icon(Icons.check_circle),
-                  label: const Text('Reset All Status to Correct'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -270,6 +246,11 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
     final position = electrodePositions[electrodeName]!;
     final String status = _getElectrodeStatus(electrodeName);
 
+    // Don't show anything for correct status
+    if (status == 'correct') {
+      return const SizedBox.shrink();
+    }
+
     final double baseDimension =
         constraints.maxWidth < constraints.maxHeight
             ? constraints.maxWidth
@@ -278,6 +259,7 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
     final double clampedElectrodeSize = electrodeSize.clamp(20.0, 60.0);
     final double statusIndicatorSize = clampedElectrodeSize * 0.8;
 
+    // Center the status indicator above the electrode (horizontally centered)
     return Positioned(
       left: (constraints.maxWidth * position['x']!) - (statusIndicatorSize / 2),
       top:
@@ -296,8 +278,8 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
     switch (status) {
       case 'noisy':
         return SizedBox(
-          width: size * 1.5,
-          height: size * 1.5,
+          width: size * 2,
+          height: size * 2,
           child: Lottie.asset(
             'assets/noisy.json',
             fit: BoxFit.contain,
@@ -322,22 +304,9 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
             },
           ),
         );
-      case 'correct':
-        return SizedBox(
-          width: size,
-          height: size,
-          child: Icon(
-            Icons.check_circle,
-            color: Colors.green,
-            size: size * 0.8,
-          ),
-        );
       default:
-        return SizedBox(
-          width: size,
-          height: size,
-          child: Icon(Icons.help_outline, color: Colors.grey, size: size * 0.8),
-        );
+        // Don't show anything for 'correct' or other statuses
+        return const SizedBox.shrink();
     }
   }
 }
