@@ -15,6 +15,7 @@ dependencies:
   flutter_3d_controller: ^2.2.0
   model_viewer_plus: ^1.9.2
   webview_flutter: ^4.7.0
+  flutter_svg: ^2.0.9
 
 dev_dependencies:
   flutter_test:
@@ -27,3 +28,4 @@ flutter:
 
   assets:
     - assets/
+    - assets/Lead6.svg
