@@ -7,7 +7,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -40,9 +40,9 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
   // Using relative positions (0.0 to 1.0) for better responsiveness
   final Map<String, Map<String, double>> electrodePositions = {
     'RA': {'x': 0.32, 'y': 0.185}, // Right Arm - left side on image
-    'LA': {'x': 0.68, 'y': 0.185}, // Left Arm - right side on image  
-    'RL': {'x': 0.34, 'y': 0.45},  // Right Leg - left side on image
-    'LL': {'x': 0.66, 'y': 0.45},  // Left Leg - right side on image
+    'LA': {'x': 0.68, 'y': 0.185}, // Left Arm - right side on image
+    'RL': {'x': 0.34, 'y': 0.45}, // Right Leg - left side on image
+    'LL': {'x': 0.66, 'y': 0.45}, // Left Leg - right side on image
   };
 
   @override
@@ -64,7 +64,7 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                 ),
               ),
             ),
-            
+
             // SVG Display with electrode overlays
             Expanded(
               flex: 3,
@@ -89,7 +89,7 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                               height: constraints.maxHeight,
                             ),
                           ),
-                          
+
                           // Electrode PNG overlays
                           if (showRA) _buildElectrodeOverlay('RA', constraints),
                           if (showLA) _buildElectrodeOverlay('LA', constraints),
@@ -102,7 +102,7 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                 ),
               ),
             ),
-            
+
             // Controls
             Expanded(
               flex: 2,
@@ -123,15 +123,6 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Text(
-                      'Toggle Electrodes',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
-                      ),
-                    ),
-                    
                     // Electrode toggle buttons in a grid
                     Expanded(
                       child: GridView.count(
@@ -139,20 +130,35 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                         childAspectRatio: 2.5,
                         mainAxisSpacing: 10,
                         crossAxisSpacing: 10,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
                         children: [
-                          _buildElectrodeToggle('RA', Colors.red.shade700, showRA, 
-                            (value) => setState(() => showRA = value)),
-                          _buildElectrodeToggle('LA', Colors.purple.shade700, showLA, 
-                            (value) => setState(() => showLA = value)),
-                          _buildElectrodeToggle('RL', Colors.amber.shade700, showRL, 
-                            (value) => setState(() => showRL = value)),
-                          _buildElectrodeToggle('LL', Colors.green.shade700, showLL, 
-                            (value) => setState(() => showLL = value)),
+                          _buildElectrodeToggle(
+                            'RA',
+                            Colors.red.shade700,
+                            showRA,
+                            (value) => setState(() => showRA = value),
+                          ),
+                          _buildElectrodeToggle(
+                            'LA',
+                            Colors.purple.shade700,
+                            showLA,
+                            (value) => setState(() => showLA = value),
+                          ),
+                          _buildElectrodeToggle(
+                            'RL',
+                            Colors.amber.shade700,
+                            showRL,
+                            (value) => setState(() => showRL = value),
+                          ),
+                          _buildElectrodeToggle(
+                            'LL',
+                            Colors.green.shade700,
+                            showLL,
+                            (value) => setState(() => showLL = value),
+                          ),
                         ],
                       ),
                     ),
-                    
+
                     // Reset all button
                     Row(
                       children: [
@@ -195,16 +201,6 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                         ),
                       ],
                     ),
-                    
-                    // Bottom note
-                    Text(
-                      'Standard 12-Lead ECG Placement',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -214,12 +210,15 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
       ),
     );
   }
-  
+
   // Helper to create electrode PNG overlays
-  Widget _buildElectrodeOverlay(String electrodeName, BoxConstraints constraints) {
+  Widget _buildElectrodeOverlay(
+    String electrodeName,
+    BoxConstraints constraints,
+  ) {
     final position = electrodePositions[electrodeName]!;
     const double electrodeSize = 40.0; // Size of the electrode PNG
-    
+
     return Positioned(
       left: (constraints.maxWidth * position['x']!) - (electrodeSize / 2),
       top: (constraints.maxHeight * position['y']!) - (electrodeSize / 2),
@@ -238,17 +237,19 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(electrodeSize / 2),
-          child: Image.asset(
-            'assets/$electrodeName.png',
-            fit: BoxFit.contain,
-          ),
+          child: Image.asset('assets/$electrodeName.png', fit: BoxFit.contain),
         ),
       ),
     );
   }
-  
+
   // Helper to create electrode toggle buttons
-  Widget _buildElectrodeToggle(String name, Color color, bool isVisible, Function(bool) onChanged) {
+  Widget _buildElectrodeToggle(
+    String name,
+    Color color,
+    bool isVisible,
+    Function(bool) onChanged,
+  ) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -268,10 +269,7 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
               Container(
                 width: 16,
                 height: 16,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
               Text(
@@ -283,13 +281,9 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
               ),
             ],
           ),
-          
+
           // Switch
-          Switch(
-            value: isVisible,
-            onChanged: onChanged,
-            activeColor: color,
-          ),
+          Switch(value: isVisible, onChanged: onChanged, activeColor: color),
         ],
       ),
     );
