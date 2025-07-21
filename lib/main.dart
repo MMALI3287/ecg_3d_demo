@@ -30,11 +30,6 @@ class ECGElectrodesPage extends StatefulWidget {
 }
 
 class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
-  bool showRA = true;
-  bool showLA = true;
-  bool showRL = true;
-  bool showLL = true;
-
   // Electrode status: 'correct', 'noisy', 'error'
   String statusRA = 'correct';
   String statusLA = 'correct';
@@ -102,6 +97,7 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
       body: SafeArea(
         child: Column(
           children: [
+            // Title
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -127,10 +123,10 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
               ),
             ),
 
+            // SVG Display with electrode overlays - Takes most of the screen
             Expanded(
-              flex: 3,
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                margin: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(16),
@@ -138,26 +134,50 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: AspectRatio(
-                    aspectRatio: 240 / 541,
+                    aspectRatio: 240 / 541, // Maintain exact SVG aspect ratio
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         return Stack(
                           children: [
+                            // Background skeleton PNG
                             Positioned.fill(
                               child: Image.asset(
                                 'assets/Lead6a.png',
                                 fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey.shade300,
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.image_not_supported,
+                                            color: Colors.grey.shade600,
+                                            size: 48,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Lead6a.png not found',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
 
-                            if (showRA)
-                              _buildElectrodeOverlay('RA', constraints),
-                            if (showLA)
-                              _buildElectrodeOverlay('LA', constraints),
-                            if (showRL)
-                              _buildElectrodeOverlay('RL', constraints),
-                            if (showLL)
-                              _buildElectrodeOverlay('LL', constraints),
+                            // Always show all electrodes
+                            _buildElectrodeOverlay('RA', constraints),
+                            _buildElectrodeOverlay('LA', constraints),
+                            _buildElectrodeOverlay('RL', constraints),
+                            _buildElectrodeOverlay('LL', constraints),
                           ],
                         );
                       },
@@ -167,136 +187,27 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
               ),
             ),
 
-            Expanded(
-              flex: 2,
-              child: Container(
-                margin: const EdgeInsets.all(16.0),
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final double screenWidth =
-                              MediaQuery.of(context).size.width;
-                          final double aspectRatio =
-                              screenWidth > 600 ? 4.0 : 2.5;
-
-                          return GridView.count(
-                            crossAxisCount: 2,
-                            childAspectRatio: aspectRatio,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            children: [
-                              _buildElectrodeToggle(
-                                'RA',
-                                Colors.red.shade700,
-                                showRA,
-                                (value) => setState(() => showRA = value),
-                              ),
-                              _buildElectrodeToggle(
-                                'LA',
-                                Colors.purple.shade700,
-                                showLA,
-                                (value) => setState(() => showLA = value),
-                              ),
-                              _buildElectrodeToggle(
-                                'RL',
-                                Colors.amber.shade700,
-                                showRL,
-                                (value) => setState(() => showRL = value),
-                              ),
-                              _buildElectrodeToggle(
-                                'LL',
-                                Colors.green.shade700,
-                                showLL,
-                                (value) => setState(() => showLL = value),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-
-                    // Control buttons
-                    Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  setState(() {
-                                    showRA = true;
-                                    showLA = true;
-                                    showRL = true;
-                                    showLL = true;
-                                  });
-                                },
-                                icon: const Icon(Icons.refresh),
-                                label: const Text('Show All'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue.shade600,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  setState(() {
-                                    showRA = false;
-                                    showLA = false;
-                                    showRL = false;
-                                    showLL = false;
-                                  });
-                                },
-                                icon: const Icon(Icons.visibility_off),
-                                label: const Text('Hide All'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey.shade600,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                statusRA = 'correct';
-                                statusLA = 'correct';
-                                statusRL = 'correct';
-                                statusLL = 'correct';
-                              });
-                            },
-                            icon: const Icon(Icons.check_circle),
-                            label: const Text('Reset All Status to Correct'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green.shade600,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+            // Status reset button at the bottom
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      statusRA = 'correct';
+                      statusLA = 'correct';
+                      statusRL = 'correct';
+                      statusLL = 'correct';
+                    });
+                  },
+                  icon: const Icon(Icons.check_circle),
+                  label: const Text('Reset All Status to Correct'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
             ),
@@ -414,123 +325,5 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
       default:
         return const SizedBox.shrink();
     }
-  }
-
-  Widget _buildElectrodeToggle(
-    String name,
-    Color color,
-    bool isVisible,
-    Function(bool) onChanged,
-  ) {
-    final String status = _getElectrodeStatus(name);
-    Color statusColor = Colors.green;
-    IconData statusIcon = Icons.check_circle;
-
-    switch (status) {
-      case 'noisy':
-        statusColor = Colors.orange;
-        statusIcon = Icons.warning;
-        break;
-      case 'error':
-        statusColor = Colors.red;
-        statusIcon = Icons.error;
-        break;
-      default:
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: isVisible ? color.withValues(alpha: 0.2) : Colors.grey.shade200,
-        border: Border.all(
-          color: isVisible ? color : Colors.grey.shade400,
-          width: 2,
-        ),
-      ),
-      child: Column(
-        children: [
-          // Main toggle row
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 16,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isVisible ? color : Colors.grey.shade600,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Icon(statusIcon, color: statusColor, size: 12),
-                            const SizedBox(width: 4),
-                            Text(
-                              status.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 8,
-                                color: statusColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                Switch(
-                  value: isVisible,
-                  onChanged: onChanged,
-                  activeColor: color,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ],
-            ),
-          ),
-
-          // Status change button
-          Container(
-            width: double.infinity,
-            height: 24,
-            child: TextButton(
-              onPressed: () => _cycleElectrodeStatus(name),
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 24),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                'Change Status',
-                style: TextStyle(
-                  fontSize: 8,
-                  color: color.withValues(alpha: 0.8),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
