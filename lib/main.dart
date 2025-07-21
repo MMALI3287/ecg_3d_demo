@@ -97,32 +97,6 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Title
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Text(
-                    'ECG Electrode Placement & Status',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap electrodes to cycle status: Correct → Noisy → Error',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             // SVG Display with electrode overlays - Takes most of the screen
             Expanded(
               child: Container(
@@ -269,12 +243,9 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
             // Status indicator
             if (status != 'correct')
               Positioned(
-                right: -8,
-                top: -8,
-                child: _buildStatusIndicator(
-                  status,
-                  clampedElectrodeSize * 0.4,
-                ),
+                right: -clampedElectrodeSize * 0.3,
+                top: -clampedElectrodeSize * 0.3,
+                child: _buildStatusIndicator(status, clampedElectrodeSize),
               ),
           ],
         ),
@@ -282,43 +253,37 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
     );
   }
 
-  Widget _buildStatusIndicator(String status, double size) {
+  Widget _buildStatusIndicator(String status, double electrodeSize) {
     switch (status) {
       case 'noisy':
-        return Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: Colors.orange,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
+        return SizedBox(
+          width: electrodeSize * 1.5, // Bigger for noisy
+          height: electrodeSize * 1.5,
           child: Lottie.asset(
-            'assets/noisy.json', // You'll need to add this animation
-            width: size * 0.8,
-            height: size * 0.8,
+            'assets/noisy.json',
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
-              return Icon(Icons.warning, color: Colors.white, size: size * 0.6);
+              return Icon(
+                Icons.warning,
+                color: Colors.orange,
+                size: electrodeSize * 1.0,
+              );
             },
           ),
         );
       case 'error':
-        return Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: Colors.red,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
+        return SizedBox(
+          width: electrodeSize * 1.0, // Normal size for error
+          height: electrodeSize * 1.0,
           child: Lottie.asset(
-            'assets/error.json', // You'll need to add this animation
-            width: size * 0.8,
-            height: size * 0.8,
+            'assets/error.json',
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
-              return Icon(Icons.error, color: Colors.white, size: size * 0.6);
+              return Icon(
+                Icons.error,
+                color: Colors.red,
+                size: electrodeSize * 0.8,
+              );
             },
           ),
         );
