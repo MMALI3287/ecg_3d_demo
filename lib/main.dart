@@ -36,13 +36,25 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
   bool showRL = true;
   bool showLL = true;
 
-  // Electrode positions - these will need to be adjusted based on the actual SVG dimensions
-  // Using relative positions (0.0 to 1.0) for better responsiveness
+  // Electrode positions based on the actual SVG coordinate system
+  // SVG viewBox is "0 0 240 541" - converting to relative positions
   final Map<String, Map<String, double>> electrodePositions = {
-    'RA': {'x': 0.32, 'y': 0.185}, // Right Arm - left side on image
-    'LA': {'x': 0.68, 'y': 0.185}, // Left Arm - right side on image
-    'RL': {'x': 0.34, 'y': 0.45}, // Right Leg - left side on image
-    'LL': {'x': 0.66, 'y': 0.45}, // Left Leg - right side on image
+    'RA': {
+      'x': 77.0488 / 240,
+      'y': 100.049 / 541,
+    }, // Exact coordinates from SVG
+    'LA': {
+      'x': 164.049 / 240,
+      'y': 100.049 / 541,
+    }, // Exact coordinates from SVG
+    'RL': {
+      'x': 81.0488 / 240,
+      'y': 243.049 / 541,
+    }, // Exact coordinates from SVG
+    'LL': {
+      'x': 158.049 / 240,
+      'y': 242.049 / 541,
+    }, // Exact coordinates from SVG
   };
 
   @override
@@ -76,28 +88,33 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Stack(
-                        children: [
-                          // Background skeleton SVG
-                          Center(
-                            child: SvgPicture.asset(
-                              'assets/Lead6a.svg',
-                              fit: BoxFit.contain,
-                              width: constraints.maxWidth,
-                              height: constraints.maxHeight,
+                  child: AspectRatio(
+                    aspectRatio: 240 / 541, // Maintain SVG aspect ratio exactly
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return Stack(
+                          children: [
+                            // Background skeleton SVG - positioned to fill the exact aspect ratio
+                            Positioned.fill(
+                              child: SvgPicture.asset(
+                                'assets/Lead6a.svg',
+                                fit: BoxFit.contain,
+                              ),
                             ),
-                          ),
 
-                          // Electrode PNG overlays
-                          if (showRA) _buildElectrodeOverlay('RA', constraints),
-                          if (showLA) _buildElectrodeOverlay('LA', constraints),
-                          if (showRL) _buildElectrodeOverlay('RL', constraints),
-                          if (showLL) _buildElectrodeOverlay('LL', constraints),
-                        ],
-                      );
-                    },
+                            // Electrode PNG overlays with precise positioning
+                            if (showRA)
+                              _buildElectrodeOverlay('RA', constraints),
+                            if (showLA)
+                              _buildElectrodeOverlay('LA', constraints),
+                            if (showRL)
+                              _buildElectrodeOverlay('RL', constraints),
+                            if (showLL)
+                              _buildElectrodeOverlay('LL', constraints),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -211,22 +228,35 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
     );
   }
 
-  // Helper to create electrode PNG overlays
+  // Helper to create electrode PNG overlays with precise positioning
   Widget _buildElectrodeOverlay(
     String electrodeName,
     BoxConstraints constraints,
   ) {
     final position = electrodePositions[electrodeName]!;
-    const double electrodeSize = 40.0; // Size of the electrode PNG
+
+    // Calculate electrode size based on screen size but keep it proportional
+    // Use the smaller dimension to ensure consistency across all screen sizes
+    final double baseDimension =
+        constraints.maxWidth < constraints.maxHeight
+            ? constraints.maxWidth
+            : constraints.maxHeight;
+    final double electrodeSize =
+        baseDimension * 0.08; // 8% of the smaller dimension
+
+    // Ensure minimum and maximum sizes for usability
+    final double clampedElectrodeSize = electrodeSize.clamp(20.0, 60.0);
 
     return Positioned(
-      left: (constraints.maxWidth * position['x']!) - (electrodeSize / 2),
-      top: (constraints.maxHeight * position['y']!) - (electrodeSize / 2),
+      left:
+          (constraints.maxWidth * position['x']!) - (clampedElectrodeSize / 2),
+      top:
+          (constraints.maxHeight * position['y']!) - (clampedElectrodeSize / 2),
       child: Container(
-        width: electrodeSize,
-        height: electrodeSize,
+        width: clampedElectrodeSize,
+        height: clampedElectrodeSize,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(electrodeSize / 2),
+          borderRadius: BorderRadius.circular(clampedElectrodeSize / 2),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.3),
@@ -236,8 +266,13 @@ class _ECGElectrodesPageState extends State<ECGElectrodesPage> {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(electrodeSize / 2),
-          child: Image.asset('assets/$electrodeName.png', fit: BoxFit.contain),
+          borderRadius: BorderRadius.circular(clampedElectrodeSize / 2),
+          child: Image.asset(
+            'assets/$electrodeName.png',
+            fit: BoxFit.contain,
+            width: clampedElectrodeSize,
+            height: clampedElectrodeSize,
+          ),
         ),
       ),
     );
